@@ -11,7 +11,7 @@ export class Jsonl {
   /**
    * JSONLinesファイルを一括で読み込み、JavaScriptオブジェクトの配列として取得します。
    */
-  async read<T = any>(filePath: string, options?: JsonlReadOptions) {
+  static async read<T = any>(filePath: string, options?: JsonlReadOptions) {
     const rawData = await fs.readFile(filePath, 'utf-8')
     return rawData
       .split(/\r?\n/)
@@ -23,7 +23,7 @@ export class Jsonl {
   /**
    * JSONLinesファイルを1行ずつ読み込む非同期イテレータを返します。
    */
-  async *readStream<T = any>(
+  static async *readStream<T = any>(
     filePath: string,
     options?: JsonlReadOptions,
   ): AsyncGenerator<T, void, unknown> {
@@ -48,14 +48,18 @@ export class Jsonl {
   /**
    * JavaScriptオブジェクトをJSON文字列に変換し、ファイルに追記します。
    */
-  async write(filePath: string, data: unknown, options: JsonlWriteOptions = {}) {
+  static async write(
+    filePath: string,
+    data: unknown,
+    options: JsonlWriteOptions = {},
+  ) {
     await this.writeMany(filePath, [data], options)
   }
 
   /**
    * 複数のJavaScriptオブジェクトをJSON文字列に変換し、ファイルに追記します。
    */
-  async writeMany(
+  static async writeMany(
     filePath: string,
     data: unknown[],
     options: JsonlWriteOptions = {},
@@ -67,7 +71,7 @@ export class Jsonl {
   /**
    * ファイルに追記する用のストリームオブジェクトを作成します。
    */
-  writeStream(filePath: string, options: JsonlWriteOptions = {}) {
+  static writeStream(filePath: string, options: JsonlWriteOptions = {}) {
     const stream = fsSync.createWriteStream(filePath, { flags: 'a' })
     const writeMany = (data: unknown[]) => {
       const payload = this._createPayload(data, options)
@@ -90,7 +94,7 @@ export class Jsonl {
     }
   }
 
-  private _createPayload(data: unknown[], options: JsonlWriteOptions) {
+  private static _createPayload(data: unknown[], options: JsonlWriteOptions) {
     return data
       .flatMap((item) => toFlatMapArray(stringifySafe(item, options)))
       .join('\n')

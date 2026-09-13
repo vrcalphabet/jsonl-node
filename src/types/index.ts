@@ -1,5 +1,5 @@
 export interface JsonlReadOptions {
-  /** 
+  /**
    * 特定の行が無効なJSON構文であった場合、`SyntaxError`を発生させる代わりに行をスキップします。
    * @default true
    */
