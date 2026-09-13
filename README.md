@@ -61,8 +61,8 @@ import { Jsonl } from 'jsonl-node'
 
 const writeStream = Jsonl.writeStream('./users.jsonl')
 
-writeStream.write({ id: 1, name: 'Alice', role: 'admin' })
-writeStream.writeMany([
+await writeStream.write({ id: 1, name: 'Alice', role: 'admin' })
+await writeStream.writeMany([
   { id: 2, name: 'Bob', role: 'user' },
   { id: 3, name: 'Charlie', role: 'user' },
 ])
@@ -103,8 +103,8 @@ JavaScriptオブジェクトをJSON文字列に変換し、ファイルに追記
 
 ファイルに追記する用のストリームオブジェクトを作成します。
 
-- `write(data: unknown)` データをストリームに書き込みます。
-- `writeMany(data: unknown[])` 複数のデータをストリームに書き込みます。
+- `write(data: unknown)` データをストリームに書き込みます。バッファが追い付かない場合は、自動的に待機します。
+- `writeMany(data: unknown[])` 複数のデータをストリームに書き込みます。バッファが追い付かない場合は、自動的に待機します。
 - `end()` ストリームの書き込みを完了させて、ファイルを閉じます。
 
 ## オプション

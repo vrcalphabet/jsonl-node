@@ -103,8 +103,8 @@ Converts multiple JavaScript objects to JSON strings and appends them to the fil
 
 Creates a stream object for appending data to a file.
 
-* `write(data: unknown)` Writes data to the stream.
-* `writeMany(data: unknown[])` Writes multiple data items to the stream.
+* `write(data: unknown)` Writes data to the stream. Automatically waits when the buffer cannot keep up.
+* `writeMany(data: unknown[])` Writes multiple data items to the stream. Automatically waits when the buffer cannot keep up.
 * `end()` Completes the stream and closes the file.
 
 ## Options

@@ -73,19 +73,47 @@ export class Jsonl {
    */
   static writeStream(filePath: string, options: JsonlWriteOptions = {}) {
     const stream = fsSync.createWriteStream(filePath, { flags: 'a' })
-    const writeMany = (data: unknown[]) => {
+    const writeMany = async (data: unknown[]) => {
       const payload = this._createPayload(data, options)
-      if (payload) stream.write(payload + '\n')
+      if (!payload) return
+
+      const bufferOK = stream.write(payload + '\n')
+      if (bufferOK) return
+
+      await new Promise<void>((resolve, reject) => {
+        const cleanup = () => {
+          stream.off('drain', onDrain)
+          stream.off('error', onError)
+        }
+        
+        const onDrain = () => {
+          cleanup()
+          resolve()
+        }
+        
+        const onError = (e: Error) => {
+          cleanup()
+          reject(e)
+        }
+        
+        stream.on('drain', onDrain)
+        stream.on('error', onError)
+      })
     }
 
     return {
-      /** データをストリームに書き込みます。 */
+      /** データをストリームに書き込みます。バッファが追い付かない場合は、自動的に待機します。 */
       write: (data: unknown) => writeMany([data]),
-      /** 複数のデータをストリームに書き込みます。 */
+      /** 複数のデータをストリームに書き込みます。バッファが追い付かない場合は、自動的に待機します。 */
       writeMany,
       /** ストリームの書き込みを完了させて、ファイルを閉じます。 */
       end() {
         return new Promise<boolean>((resolve) => {
+          if (stream.writableEnded) {
+            resolve(true)
+            return
+          }
+
           stream.once('finish', () => resolve(true))
           stream.once('error', () => resolve(false))
           stream.end()
