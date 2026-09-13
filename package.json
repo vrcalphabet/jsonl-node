@@ -1,0 +1,31 @@
+{
+  "name": "jsonl-node",
+  "version": "1.0.0",
+  "description": "Node.jsでJSONLinesを扱うためのライブラリ",
+  "files": [
+    "dist"
+  ],
+  "main": "dist/main.mjs",
+  "types": "dist/main.d.mts",
+  "scripts": {
+    "format": "prettier --write src",
+    "dev": "tsdown --log-level silent --watch",
+    "build": "tsdown --log-level silent"
+  },
+  "keywords": ["jsonl", "jsonlines"],
+  "homepage": "https://github.com/vrcalphabet/jsonl-node",
+  "bugs": {
+    "url": "https://github.com/vrcalphabet/jsonl-node/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/vrcalphabet/jsonl-node.git"
+  },
+  "author": "vrcalphabet",
+  "license": "MIT",
+  "type": "module",
+  "devDependencies": {
+    "@types/node": "^22.20.2",
+    "tsdown": "^0.22.14"
+  }
+}

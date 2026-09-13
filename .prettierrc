@@ -1,0 +1,20 @@
+{
+  "singleQuote": true,
+  "semi": false,
+  "printWidth": 85,
+  "checkIgnorePragma": true,
+  "importOrder": [
+    "^p?react",
+    "^node:.+",
+    "<THIRD_PARTY_MODULES>",
+    "^(?!.*\\.\\w+(\\?.+)?$)\\.\\./",
+    "^(?!.*\\.\\w+(\\?.+)?$)\\./",
+    "\\.\\w+(\\?.+)?$"
+  ],
+  "importOrderSeparation": false,
+  "importOrderSortSpecifiers": true,
+  "importOrderParserPlugins": ["typescript", "jsx", "decorators-legacy"],
+  "plugins": [
+    "@trivago/prettier-plugin-sort-imports"
+  ]
+}
