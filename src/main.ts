@@ -85,17 +85,17 @@ export class Jsonl {
           stream.off('drain', onDrain)
           stream.off('error', onError)
         }
-        
+
         const onDrain = () => {
           cleanup()
           resolve()
         }
-        
+
         const onError = (e: Error) => {
           cleanup()
           reject(e)
         }
-        
+
         stream.on('drain', onDrain)
         stream.on('error', onError)
       })
