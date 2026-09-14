@@ -61,8 +61,8 @@ import { Jsonl } from 'jsonl-node'
 
 const writeStream = Jsonl.writeStream('./users.jsonl')
 
-writeStream.write({ id: 1, name: 'Alice', role: 'admin' })
-writeStream.writeMany([
+await writeStream.write({ id: 1, name: 'Alice', role: 'admin' })
+await writeStream.writeMany([
   { id: 2, name: 'Bob', role: 'user' },
   { id: 3, name: 'Charlie', role: 'user' },
 ])
