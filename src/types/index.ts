@@ -13,3 +13,9 @@ export interface JsonlWriteOptions {
    */
   ignoreInvalid?: boolean
 }
+
+export interface JsonlWriter {
+  write(data: unknown): Promise<void>
+  writeMany(data: unknown[]): Promise<void>
+  end(): Promise<boolean>
+}

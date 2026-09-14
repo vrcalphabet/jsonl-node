@@ -1,7 +1,7 @@
 import * as fsSync from 'fs'
 import * as fs from 'fs/promises'
 import readline from 'readline'
-import type { JsonlReadOptions, JsonlWriteOptions } from './types'
+import type { JsonlReadOptions, JsonlWriteOptions, JsonlWriter } from './types'
 import { toFlatMapArray } from './utils'
 import { parseSafe, stringifySafe } from './utils/json'
 
@@ -119,7 +119,7 @@ export class Jsonl {
           stream.end()
         })
       },
-    }
+    } satisfies JsonlWriter
   }
 
   private static _createPayload(data: unknown[], options: JsonlWriteOptions) {
