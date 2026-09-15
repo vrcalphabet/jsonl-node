@@ -107,6 +107,10 @@ Creates a stream object for appending data to a file.
 * `writeMany(data: unknown[])` Writes multiple data items to the stream. Automatically waits when the buffer cannot keep up.
 * `end()` Completes the stream and closes the file.
 
+#### `.clear(filePath: string)`
+
+Clears the contents of a file.
+
 ## Options
 
 #### `JsonlReadOptions`
@@ -124,10 +128,13 @@ interface JsonlReadOptions {
 ```ts
 interface JsonlWriteOptions {
   ignoreInvalid?: boolean
+  mode?: 'a' | 'w'
 }
 ```
 
 `ignoreInvalid` Skips values that contain unserializable objects, such as circular references or `BigInt`, instead of throwing a `TypeError`. The default is `true`.
+
+`mode` When set to `'a'`, appends to the existing file contents. When set to `'w'`, clears the existing file contents before writing new data.
 
 ## Notes
 

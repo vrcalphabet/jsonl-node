@@ -12,6 +12,7 @@ export interface JsonlWriteOptions {
    * @default true
    */
   ignoreInvalid?: boolean
+  mode?: 'a' | 'w'
 }
 
 export interface JsonlWriter {

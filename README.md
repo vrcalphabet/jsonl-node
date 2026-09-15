@@ -107,6 +107,10 @@ JavaScriptオブジェクトをJSON文字列に変換し、ファイルに追記
 - `writeMany(data: unknown[])` 複数のデータをストリームに書き込みます。バッファが追い付かない場合は、自動的に待機します。
 - `end()` ストリームの書き込みを完了させて、ファイルを閉じます。
 
+#### `.clear(filePath: string)`
+
+ファイルの内容を消去します。
+
 ## オプション
 
 #### `JsonlReadOptions`
@@ -124,10 +128,13 @@ interface JsonlReadOptions {
 ```ts
 interface JsonlWriteOptions {
   ignoreInvalid?: boolean
+  mode?: 'a' | 'w'
 }
 ```
 
 `ignoreInvalid` 値に循環参照や`BigInt`など、シリアライズできないオブジェクトが含まれている場合、`TypeError`を発生させる代わりにその値をスキップします。デフォルトは`true`です。
+
+`mode` `'a'`の場合、ファイルの内容に追記します。`'w'`の場合、ファイルの内容を消去したうえで、新しく書き込みます。
 
 ## 注意点
 

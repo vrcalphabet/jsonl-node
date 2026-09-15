@@ -65,19 +65,24 @@ export class Jsonl {
     options: JsonlWriteOptions = {},
   ) {
     const payload = this._createPayload(data, options)
-    if (payload) await fs.appendFile(filePath, payload + '\n')
+    if (options.mode === 'w') {
+      await fs.writeFile(filePath, payload)
+    } else if (payload) {
+      await fs.appendFile(filePath, payload)
+    }
   }
 
   /**
    * ファイルに追記する用のストリームオブジェクトを作成します。
    */
   static writeStream(filePath: string, options: JsonlWriteOptions = {}) {
-    const stream = fsSync.createWriteStream(filePath, { flags: 'a' })
+    const stream = fsSync.createWriteStream(filePath, { flags: options.mode ?? 'a' })
+
     const writeMany = async (data: unknown[]) => {
       const payload = this._createPayload(data, options)
       if (!payload) return
 
-      const bufferOK = stream.write(payload + '\n')
+      const bufferOK = stream.write(payload)
       if (bufferOK) return
 
       await new Promise<void>((resolve, reject) => {
@@ -122,9 +127,14 @@ export class Jsonl {
     } satisfies JsonlWriter
   }
 
+  static async clear(filePath: string) {
+    await fs.truncate(filePath, 0)
+  }
+
   private static _createPayload(data: unknown[], options: JsonlWriteOptions) {
-    return data
+    const payload = data
       .flatMap((item) => toFlatMapArray(stringifySafe(item, options)))
       .join('\n')
+    return payload ? payload + '\n' : ''
   }
 }
