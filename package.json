@@ -5,14 +5,25 @@
   "files": [
     "dist"
   ],
-  "main": "dist/main.mjs",
-  "types": "dist/main.d.mts",
+  "exports": {
+    ".": {
+      "types": "./dist/main.d.mts",
+      "import": "./dist/main.mjs"
+    },
+    "./schema": {
+      "types": "./dist/schema/main.d.mts",
+      "import": "./dist/schema/main.mjs"
+    }
+  },
   "scripts": {
     "format": "prettier --write src",
     "dev": "tsdown --log-level silent --watch",
     "build": "tsdown --log-level silent"
   },
-  "keywords": ["jsonl", "jsonlines"],
+  "keywords": [
+    "jsonl",
+    "jsonlines"
+  ],
   "homepage": "https://github.com/vrcalphabet/jsonl-node",
   "bugs": {
     "url": "https://github.com/vrcalphabet/jsonl-node/issues"
@@ -25,7 +36,16 @@
   "license": "MIT",
   "type": "module",
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
     "@types/node": "^22.20.2",
-    "tsdown": "^0.22.14"
+    "eslint": "^10.10.0",
+    "eslint-plugin-unicorn": "^76.0.0",
+    "jiti": "^2.7.0",
+    "reverse-line-reader-types": "^1.0.0",
+    "tsdown": "^0.22.14",
+    "typescript-eslint": "^8.70.0"
+  },
+  "dependencies": {
+    "reverse-line-reader": "^0.2.6"
   }
 }

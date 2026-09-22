@@ -9,7 +9,7 @@
     "target": "esnext",
     "moduleResolution": "bundler",
     "lib": ["esnext"],
-    "types": ["node"],
+    "types": ["node", "reverse-line-reader-types"],
 
     // Other Outputs
     "sourceMap": true,

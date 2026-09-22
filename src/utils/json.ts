@@ -1,6 +1,6 @@
-import type { JsonlReadOptions, JsonlWriteOptions } from '../types'
+import type { JsonlReadOptions, JsonlWriteOptionsWithSchema } from '../types'
 
-export function parseSafe<T = any>(
+export function parseSafe<T>(
   value: string,
   { ignoreInvalid = true }: JsonlReadOptions = {},
 ) {
@@ -14,7 +14,7 @@ export function parseSafe<T = any>(
 
 export function stringifySafe(
   value: unknown,
-  { ignoreInvalid = true }: JsonlWriteOptions = {},
+  { ignoreInvalid = true }: JsonlWriteOptionsWithSchema = {},
 ) {
   try {
     return JSON.stringify(value)
