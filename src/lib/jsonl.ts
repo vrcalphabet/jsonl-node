@@ -57,24 +57,20 @@ export async function createPayload(
 
   let state = schemas.get(realPath)
   if (!schemas.has(realPath)) {
-    if (options.mode !== 'w') {
-      // またキャッシュされていない場合は、ファイルを逆向きに探索してスキーマを取得する
-      const latestSchema = await getLatestSchema(realPath)
+    // またキャッシュされていない場合は、ファイルを逆向きに探索してスキーマを取得する
+    const latestSchema = await getLatestSchema(realPath)
 
-      if (latestSchema.type === 'found') {
-        // スキーマが見つかった場合は、キャッシュに保存する
-        state = latestSchema
-      } else if (latestSchema.type === 'limit-reached') {
-        // 探索上限に達した場合は、直前までスキーマが存在していた可能性があるため解除を明示する
-        if (!options.schema) {
-          writeData.push(jsonlSchema([]))
-        }
-        state = undefined
-      } else {
-        state = undefined
+    if (latestSchema.type === 'found') {
+      // スキーマが見つかった場合は、キャッシュに保存する
+      state = latestSchema
+    } else if (latestSchema.type === 'limit-reached') {
+      // 探索上限に達した場合は、直前までスキーマが存在していた可能性があるため解除を明示する
+      if (!options.schema) {
+        writeData.push(jsonlSchema([]))
       }
+      state = undefined
     } else {
-      state = { distance: 0, schema: [] }
+      state = undefined
     }
   }
 

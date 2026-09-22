@@ -7,6 +7,7 @@ import { type Schema, createPayload, parseJsonlLine } from './lib/jsonl'
 import type {
   JsonlReadOptions,
   JsonlSchemaOptions,
+  JsonlWriteOptions,
   JsonlWriteOptionsWithSchema,
   JsonlWriter,
 } from './types'
@@ -85,6 +86,8 @@ export class Jsonl {
     data: unknown[],
     options: JsonlWriteOptionsWithSchema = {},
   ) {
+    this._resetCache(filePath, options)
+
     const payload = await createPayload(filePath, data, options, this.schemas)
     if (options.mode === 'w') {
       await fs.writeFile(filePath, payload)
@@ -97,6 +100,7 @@ export class Jsonl {
    * ファイルに追記する用のストリームオブジェクトを作成します。
    */
   static writeStream(filePath: string, options: JsonlWriteOptionsWithSchema = {}) {
+    this._resetCache(filePath, options)
     const stream = fsSync.createWriteStream(filePath, { flags: options.mode ?? 'a' })
 
     const writeMany = async (
@@ -164,5 +168,12 @@ export class Jsonl {
     const realPath = path.resolve(filePath)
     await fs.truncate(realPath, 0)
     this.schemas.set(realPath, { distance: 0, schema: [] })
+  }
+
+  private static _resetCache(filePath: string, options: JsonlWriteOptions) {
+    const realPath = path.resolve(filePath)
+    if (options.mode === 'w') {
+      this.schemas.set(realPath, { distance: 0, schema: [] })
+    }
   }
 }
