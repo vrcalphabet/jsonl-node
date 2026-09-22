@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import * as fsSync from 'fs'
-import * as fs from 'fs/promises'
-import readline from 'readline'
+import * as fsSync from 'node:fs'
+import * as fs from 'node:fs/promises'
+import readline from 'node:readline'
 import type { JsonlReadOptions, JsonlWriteOptions, JsonlWriter } from './types'
 import { toFlatMapArray } from './utils/array'
 import { parseSafe, stringifySafe } from './utils/json'

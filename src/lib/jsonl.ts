@@ -1,4 +1,4 @@
-import path from 'path'
+import path from 'node:path'
 import { SCHEMA_INTERVAL } from '../constraints'
 import type { JsonlReadOptions, JsonlWriteOptionsWithSchema } from '../types'
 import { equals, toFlatMapArray } from '../utils/array'

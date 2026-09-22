@@ -1,8 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import * as fsSync from 'fs'
-import * as fs from 'fs/promises'
-import path from 'path'
-import readline from 'readline'
+import * as fsSync from 'node:fs'
+import * as fs from 'node:fs/promises'
+import path from 'node:path'
+import readline from 'node:readline'
 import { type Schema, createPayload, parseJsonlLine } from './lib/jsonl'
 import type {
   JsonlReadOptions,
