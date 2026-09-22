@@ -17,23 +17,27 @@ export function getLatestSchema(filePath: string) {
   return new Promise<LatestSchemaResult>((resolve) => {
     let distance = 0
 
-    lineReader.eachLine(filePath, (line, last) => {
-      const schema = extractSchema(parseSafe(line))
-      if (schema) {
-        resolve({ type: 'found', distance, schema })
-        return false
-      }
+    lineReader
+      .eachLine(filePath, (line, last) => {
+        const schema = extractSchema(parseSafe(line))
+        if (schema) {
+          resolve({ type: 'found', distance, schema })
+          return false
+        }
 
-      if (last) {
+        if (last) {
+          resolve({ type: 'not-found' })
+          return false
+        }
+
+        if (++distance >= SCHEMA_INTERVAL) {
+          resolve({ type: 'limit-reached' })
+          return false
+        }
+      })
+      .then(() => {
         resolve({ type: 'not-found' })
-        return false
-      }
-
-      if (++distance >= SCHEMA_INTERVAL) {
-        resolve({ type: 'limit-reached' })
-        return false
-      }
-    })
+      })
   })
 }
 
