@@ -6,7 +6,7 @@ export interface JsonlReadOptions {
   ignoreInvalid?: boolean
 }
 
-export type JsonlWriteOptions = {
+export interface JsonlWriteOptions {
   /**
    * 値に循環参照や`BigInt`など、シリアライズできないオブジェクトが含まれている場合、`TypeError`を発生させる代わりにその値をスキップします。
    * @default true
@@ -15,7 +15,7 @@ export type JsonlWriteOptions = {
   mode?: 'a' | 'w'
 }
 
-export type JsonlSchemaOptions = {
+export interface JsonlSchemaOptions {
   schema?: string[]
 }
 

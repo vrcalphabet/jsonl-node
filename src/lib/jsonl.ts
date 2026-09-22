@@ -3,6 +3,7 @@ import { SCHEMA_INTERVAL } from '../constraints'
 import type { JsonlReadOptions, JsonlWriteOptionsWithSchema } from '../types'
 import { equals, toFlatMapArray } from '../utils/array'
 import { parseSafe, stringifySafe } from '../utils/json'
+import { isPlainObject } from '../utils/object'
 import { extractSchema, getLatestSchema, jsonlSchema } from './schema'
 import type { InternalJsonlSchema, Jsonl } from '../main.schema'
 
@@ -102,11 +103,19 @@ export async function createPayload(
 
   schemas.set(realPath, state)
 
-  writeData.push(data)
+  writeData.push(...data)
   if (state) state.distance += writeData.length
 
   const payload = writeData
-    .flatMap((item) => toFlatMapArray(stringifySafe(item, options)))
+    .flatMap((item) => {
+      // eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
+      if (isPlainObject(item) && state?.schema.length) {
+        if ('$jsonl-schema' in item) return [stringifySafe(item)]
+        const data = state.schema.map((key) => item[key])
+        return toFlatMapArray(stringifySafe(data, options))
+      }
+      return toFlatMapArray(stringifySafe(item, options))
+    })
     .join('\n')
   return payload ? payload + '\n' : ''
 }

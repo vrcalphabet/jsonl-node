@@ -85,7 +85,7 @@ export class Jsonl {
     data: unknown[],
     options: JsonlWriteOptionsWithSchema = {},
   ) {
-    const payload = await createPayload(filePath, [data], options, this.schemas)
+    const payload = await createPayload(filePath, data, options, this.schemas)
     if (options.mode === 'w') {
       await fs.writeFile(filePath, payload)
     } else if (payload) {
