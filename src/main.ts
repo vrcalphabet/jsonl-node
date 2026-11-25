@@ -1,24 +1,55 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import * as fsSync from 'node:fs'
 import * as fs from 'node:fs/promises'
+import path from 'node:path'
 import readline from 'node:readline'
-import type { JsonlReadOptions, JsonlWriteOptions, JsonlWriter } from './types'
+import { type Schema, createPayload, parseJsonlLine } from './lib/jsonl'
+import type {
+  FileInput,
+  JsonlReadOptions,
+  JsonlSchemaOptions,
+  JsonlWriteOptions,
+  JsonlWriteOptionsWithSchema,
+  JsonlWriter,
+} from './types'
+import type { InferFile } from './types/internal'
 import { toFlatMapArray } from './utils/array'
-import { parseSafe, stringifySafe } from './utils/json'
+import { mapObject } from './utils/object'
 
 export type * from './types'
 
+// 行がスキーマであることを識別する型。キー名は正直なんでもいい
+export type InternalJsonlSchema = {
+  '$jsonl-schema': string[]
+}
+
+function flatFile(file: string | FileInput): FileInput {
+  if (typeof file === 'string') {
+    return { path: file, options: undefined }
+  }
+  return file
+}
+
 export class Jsonl {
+  // 各ファイルの最新のスキーマとその行番号の一覧
+  private static schemas = new Map<
+    string,
+    { distance: number; schema: string[] } | undefined
+  >()
+
   /**
-   * JSONLinesファイルを一括で読み込み、JavaScriptオブジェクトの配列として取得します。
+   * JSONLinesファイルを一括で読み込み、JavaScriptオブジェクトの配列として取得します。\
+   * **大きなファイルには向いていません。代わりに{@link Jsonl.readStream}を使用してください。**
    */
-  static async read<T = any>(filePath: string, options?: JsonlReadOptions) {
+  static async read<T = any>(filePath: string, options: JsonlReadOptions = {}) {
     const rawData = await fs.readFile(filePath, 'utf-8')
+
+    // readは一行目から逐次実行するので、this.schemasは使えない
+    const schema: Schema = { current: undefined }
+    // ファイルを各行に対して実行。無効な行はスキップしたいためflatMapを使用した
     return rawData
       .split(/\r?\n/)
-      .flatMap((line) =>
-        line.trim() ? toFlatMapArray(parseSafe<T>(line, options)) : [],
-      )
+      .flatMap((line) => toFlatMapArray(parseJsonlLine<T>(line, schema, options)))
   }
 
   /**
@@ -26,7 +57,7 @@ export class Jsonl {
    */
   static async *readStream<T = any>(
     filePath: string,
-    options?: JsonlReadOptions,
+    options: JsonlReadOptions = {},
   ): AsyncGenerator<T, void, unknown> {
     const stream = fsSync.createReadStream(filePath)
     const rl = readline.createInterface({
@@ -35,9 +66,9 @@ export class Jsonl {
     })
 
     try {
+      const schema: Schema = { current: undefined }
       for await (const line of rl) {
-        if (!line.trim()) continue
-        const parsed = parseSafe<T>(line, options)
+        const parsed = parseJsonlLine<T>(line, schema, options)
         if (parsed !== undefined) yield parsed
       }
     } finally {
@@ -46,13 +77,26 @@ export class Jsonl {
     }
   }
 
+  static readStreams<P extends Record<string, string | FileInput>>(
+    basePath: string,
+    filePaths: P,
+    options: JsonlReadOptions = {},
+  ): {
+    [K in keyof P]: AsyncGenerator<InferFile<P[K]>, void, unknown>
+  } {
+    return mapObject(filePaths, (file) => {
+      const ff = flatFile(file)
+      return this.readStream(path.join(basePath, ff.path), ff.options ?? options)
+    }) as any
+  }
+
   /**
    * JavaScriptオブジェクトをJSON文字列に変換し、ファイルに追記します。
    */
   static async write(
     filePath: string,
     data: unknown,
-    options: JsonlWriteOptions = {},
+    options: JsonlWriteOptionsWithSchema = {},
   ) {
     await this.writeMany(filePath, [data], options)
   }
@@ -63,9 +107,11 @@ export class Jsonl {
   static async writeMany(
     filePath: string,
     data: unknown[],
-    options: JsonlWriteOptions = {},
+    options: JsonlWriteOptionsWithSchema = {},
   ) {
-    const payload = this._createPayload(data, options)
+    this._resetCache(filePath, options)
+
+    const payload = await createPayload(filePath, data, options, this.schemas)
     if (options.mode === 'w') {
       await fs.writeFile(filePath, payload)
     } else if (payload) {
@@ -76,11 +122,23 @@ export class Jsonl {
   /**
    * ファイルに追記する用のストリームオブジェクトを作成します。
    */
-  static writeStream(filePath: string, options: JsonlWriteOptions = {}) {
+  static writeStream(
+    filePath: string,
+    options: JsonlWriteOptionsWithSchema = {},
+  ) {
+    this._resetCache(filePath, options)
     const stream = fsSync.createWriteStream(filePath, { flags: options.mode ?? 'a' })
 
-    const writeMany = async (data: unknown[]) => {
-      const payload = this._createPayload(data, options)
+    const writeMany = async (
+      data: unknown[],
+      schemaOptions?: JsonlSchemaOptions,
+    ) => {
+      const payload = await createPayload(
+        filePath,
+        data,
+        { ...options, ...schemaOptions },
+        this.schemas,
+      )
       if (!payload) return
 
       const bufferOK = stream.write(payload)
@@ -109,7 +167,8 @@ export class Jsonl {
 
     return {
       /** データをストリームに書き込みます。バッファが追い付かない場合は、自動的に待機します。 */
-      write: (data: unknown) => writeMany([data]),
+      write: (data: unknown, schemaOptions?: JsonlSchemaOptions) =>
+        writeMany([data], schemaOptions),
       /** 複数のデータをストリームに書き込みます。バッファが追い付かない場合は、自動的に待機します。 */
       writeMany,
       /** ストリームの書き込みを完了させて、ファイルを閉じます。 */
@@ -128,14 +187,39 @@ export class Jsonl {
     } satisfies JsonlWriter
   }
 
-  static async clear(filePath: string) {
-    await fs.truncate(filePath, 0)
+  static writeStreams<P extends Record<string, string | FileInput>>(
+    basePath: string,
+    filePaths: P,
+    options: JsonlWriteOptionsWithSchema = {},
+  ): {
+    [K in keyof P]: JsonlWriter
+  } {
+    return mapObject(filePaths, (file) => {
+      const ff = flatFile(file)
+      return this.writeStream(path.join(basePath, ff.path), ff.options ?? options)
+    }) as any
   }
 
-  private static _createPayload(data: unknown[], options: JsonlWriteOptions) {
-    const payload = data
-      .flatMap((item) => toFlatMapArray(stringifySafe(item, options)))
-      .join('\n')
-    return payload ? payload + '\n' : ''
+  static file<T = any>(
+    filePath: string,
+    options?: JsonlReadOptions | JsonlWriteOptionsWithSchema,
+  ) {
+    return { path: filePath, options } as FileInput<T>
+  }
+
+  /**
+   * ファイルの内容を消去します。
+   */
+  static async clear(filePath: string) {
+    const realPath = path.resolve(filePath)
+    await fs.truncate(realPath, 0)
+    this.schemas.set(realPath, { distance: 0, schema: [] })
+  }
+
+  private static _resetCache(filePath: string, options: JsonlWriteOptions) {
+    const realPath = path.resolve(filePath)
+    if (options.mode === 'w') {
+      this.schemas.set(realPath, { distance: 0, schema: [] })
+    }
   }
 }

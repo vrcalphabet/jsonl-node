@@ -1,7 +1,8 @@
+import * as fs from 'node:fs'
 import lineReader from 'reverse-line-reader'
 import { SCHEMA_INTERVAL } from '../constraints'
 import { parseSafe } from '../utils/json'
-import type { InternalJsonlSchema } from '../main.schema'
+import type { InternalJsonlSchema } from '../main'
 
 type LatestSchemaResult =
   | {
@@ -15,6 +16,11 @@ type LatestSchemaResult =
 
 export function getLatestSchema(filePath: string) {
   return new Promise<LatestSchemaResult>((resolve) => {
+    if (!fs.existsSync(filePath)) {
+      resolve({ type: 'not-found' })
+      return
+    }
+
     let distance = 0
 
     lineReader

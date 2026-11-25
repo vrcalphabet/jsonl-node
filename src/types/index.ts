@@ -4,6 +4,11 @@ export interface JsonlReadOptions {
    * @default true
    */
   ignoreInvalid?: boolean
+  /**
+   * スキーマの定義行をスキーマと解釈せずにそのまま出力するようにします。
+   * @default false
+   */
+  ignoreSchema?: boolean
 }
 
 export interface JsonlWriteOptions {
@@ -12,6 +17,15 @@ export interface JsonlWriteOptions {
    * @default true
    */
   ignoreInvalid?: boolean
+  /**
+   * ファイルに既にスキーマが存在するかを捜索する処理を禁止します。また、スキーマを無効にします。
+   * @default false
+   */
+  ignoreSchema?: boolean
+  /**
+   * ファイルの書き込みモードです。 `'a'` = 追記、`'w'` = 上書き。
+   * @default 'a'
+   */
   mode?: 'a' | 'w'
 }
 
@@ -25,4 +39,10 @@ export interface JsonlWriter {
   write(data: unknown, schemaOptions?: JsonlSchemaOptions): Promise<void>
   writeMany(data: unknown[], schemaOptions?: JsonlSchemaOptions): Promise<void>
   end(): Promise<boolean>
+}
+
+export type FileInput<T = any> = {
+  path: string
+  options: JsonlReadOptions | JsonlWriteOptionsWithSchema | undefined
+  readonly infer?: T
 }
