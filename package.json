@@ -9,10 +9,6 @@
     ".": {
       "types": "./dist/main.d.mts",
       "import": "./dist/main.mjs"
-    },
-    "./schema": {
-      "types": "./dist/schema/main.d.mts",
-      "import": "./dist/schema/main.mjs"
     }
   },
   "scripts": {
@@ -37,6 +33,7 @@
   "type": "module",
   "devDependencies": {
     "@eslint/js": "^10.0.1",
+    "@trivago/prettier-plugin-sort-imports": "^6.0.2",
     "@types/node": "^22.20.2",
     "eslint": "^10.10.0",
     "eslint-plugin-unicorn": "^76.0.0",
