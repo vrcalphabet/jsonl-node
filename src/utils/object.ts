@@ -15,3 +15,11 @@ export function mapObject<K extends string, V, T>(
   })
   return Object.fromEntries(entries)
 }
+
+export function eachObject<K extends string, V>(
+  obj: Record<K, V>,
+  callback: (value: V, key: K) => void,
+) {
+  const entries = Object.entries(obj) as [K, V][]
+  entries.forEach(([key, value]) => callback(value, key))
+}

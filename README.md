@@ -6,10 +6,10 @@
   <img src="https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge">
 </p>
 
-<h1 align="center">jsonl-node<font size="2" color="grey">(with schema!)</font></h1>
+<h1 align="center">jsonl-node</h1>
 
 <p align="center">
-  <b>Node.jsで非同期に<a href="http://jsonlines.org/">JSONLines</a>を扱うためのライブラリ</b>
+  <b>Node.jsで非同期に <a href="http://jsonlines.org/">JSONLines</a> を扱うためのライブラリ</b>
 </p>
 
 ---
@@ -42,6 +42,21 @@ for await (const user of readStream) {
 }
 ```
 
+##### 集約ストリーム読み込み
+
+```ts
+import { Jsonl } from 'jsonl-node'
+                                // ↓
+const readStream = Jsonl.readStreams('data', {
+  users: Jsonl.file<User>('./users.jsonl')
+  carts: Jsonl.file<Cart>('./cart.jsonl')
+})
+
+for await (const cart of readStream.users) {
+  console.log('Cart: ', cart)
+}
+```
+
 ##### 一括書き込み
 
 ```ts
@@ -71,10 +86,26 @@ const success = await writeStream.end()
 console.log('Stream closed: ', success)
 ```
 
+##### 集約ストリーム書き込み
+
+```ts
+import { Jsonl } from 'jsonl-node'
+                                  // ↓
+const writeStream = Jsonl.writeStreams('data', {
+  users: Jsonl.file<User>('./users.jsonl')
+  carts: Jsonl.file<Cart>('./cart.jsonl')
+})
+
+writeStream.users.write({ id: 1, name: 'Alice', role: 'admin' })
+writeStream.carts.write({ id: 1, items: ['Apple', 'Banana'] })
+
+writeStream.$end()
+```
+
 ##### 一括書き込み（スキーマ付き）
 
 ```ts
-import { Jsonl } from 'jsonl-node/schema' // <- !!
+import { Jsonl } from 'jsonl-node'
 
 const options = { schema: ['id', 'name', 'role'] }
 
@@ -88,7 +119,7 @@ await Jsonl.writeMany('./users.jsonl', [
 ##### ストリーム書き込み（スキーマ付き）
 
 ```ts
-import { Jsonl } from 'jsonl-node/schema' // <- !!
+import { Jsonl } from 'jsonl-node'
 
 const options = { schema: ['id', 'name', 'role'] }
 const writeStream = Jsonl.writeStream('./users.jsonl', options)
@@ -119,7 +150,7 @@ jsonl-node v2.0.0 より、スキーマ構文に対応しました。
 
 スキーマは独自の構文で**他のJSONLライブラリとの互換性はない**ですが、同じ構造のデータを大量に保存する場合、各データに含まれるキーを省略できるためファイルサイズを削減できます。
 
-現時点 (v2.0.0) では、一次元のオブジェクト構造体にのみ対応しています。ネストされたオブジェクトは、2層目から圧縮されなくなります。
+現時点 (v2.x.x) では、一次元のオブジェクト構造体にのみ対応しています。ネストされたオブジェクトは、2層目から圧縮されなくなります。
 
 ```ts
 { id: 1, tags: ['manager', 'dev'] }
@@ -127,12 +158,6 @@ jsonl-node v2.0.0 より、スキーマ構文に対応しました。
 
 { id: 1, details: { created_at: '2022-09-11' } }
 // -> [1, { "created_at": "2022-09-11" }]
-```
-
-スキーマ付きのJSONLを扱う場合、`'jsonl-node'`の代わりに`'jsonl-node/schema'`を使用してください。これは読み込み時も同様です。
-
-```ts
-import { Jsonl } from 'jsonl-node/schema'
 ```
 
 例えば、以下のように同じ構造のデータを通常のJSONLとして保存すると、各行でキーを繰り返し保存する必要があります。
@@ -158,37 +183,7 @@ jsonl-nodeのスキーマを使用すると、最初にキーの一覧をスキ�
 
 スキーマのAPIは以下の通りです。
 
-## API <font size="5">(`'jsonl-node'`)</font>
-
-#### `.read(filePath: string, options: JsonlReadOptions)`
-
-JSONLinesファイルを一括で読み込み、JavaScriptオブジェクトの配列として取得します。
-
-#### `.readStream(filePath: string, options?: JsonlReadOptions)`
-
-JSONLinesファイルを1行ずつ読み込む非同期イテレータを返します。
-
-#### `.write(filePath: string, data: unknown, options?: JsonlWriteOptions)`
-
-JavaScriptオブジェクトをJSON文字列に変換し、ファイルに追記します。
-
-#### `.writeMany(filePath: string, data: unknown[], options?: JsonlWriteOptions)`
-
-複数のJavaScriptオブジェクトをJSON文字列に変換し、ファイルに追記します。
-
-#### `.writeStream(filePath: string, options?: JsonlWriteOptions)`
-
-ファイルに追記するためのストリームオブジェクトを作成します。
-
-- `write(data: unknown)` データをストリームに書き込みます。バッファが追い付かない場合は、自動的に待機します。
-- `writeMany(data: unknown[])` 複数のデータをストリームに書き込みます。バッファが追い付かない場合は、自動的に待機します。
-- `end()` ストリームの書き込みを完了させて、ファイルを閉じます。
-
-#### `.clear(filePath: string)`
-
-ファイルの内容を消去します。
-
-### スキーマ付きAPI (`'jsonl-node/schema'`)
+## API
 
 #### `.read(filePath: string, options: JsonlReadOptions)`
 #### `.readStream(filePath: string, options?: JsonlReadOptions)`
@@ -222,21 +217,27 @@ JavaScriptオブジェクトをJSON文字列に変換し、ファイルに追記
 ```ts
 interface JsonlReadOptions {
   ignoreInvalid?: boolean
+  ignoreSchema?: boolean
 }
 ```
 
 `ignoreInvalid` 特定の行が無効なJSON構文であった場合、`SyntaxError`を発生させる代わりに行をスキップします。デフォルトは`true`です。
+
+`ignoreSchema` スキーマの定義行をスキーマと解釈せずにそのまま出力するようにします。
 
 #### `JsonlWriteOptions`
 
 ```ts
 interface JsonlWriteOptions {
   ignoreInvalid?: boolean
+  ignoreSchema?: boolean
   mode?: 'a' | 'w'
 }
 ```
 
 `ignoreInvalid` 値に循環参照や`BigInt`など、シリアライズできないオブジェクトが含まれている場合、`TypeError`を発生させる代わりにその値をスキップします。デフォルトは`true`です。
+
+`ignoreSchema` ファイルに既にスキーマが存在するかを捜索する処理を禁止します。
 
 `mode` `'a'`の場合、ファイルの内容に追記します。`'w'`の場合、ファイルの内容を消去したうえで、新しく書き込みます。
 
@@ -258,7 +259,7 @@ type JsonlWriteOptionsWithSchema = JsonlWriteOptions & JsonlSchemaOptions
 
 ## 注意点
 
-`.read<T>()`, `.readStream<T>()`にはパース後の値の型を指定できますが、値がその型に従っていることを保証しているわけではありません。取得するファイルが信頼できない場合は、取得した後に[Zod](https://zod.dev/)や[ArkType](https://arktype.io/)で検証する必要があります。
+`.read<T>()`, `.readStream<T>()`などにはパース後の値の型を指定できますが、値がその型に従っていることを保証しているわけではありません。取得するファイルが信頼できない場合は、取得した後に[Zod](https://zod.dev/)や[ArkType](https://arktype.io/)で検証する必要があります。
 
 ## 貢献
 

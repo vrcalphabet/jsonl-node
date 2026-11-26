@@ -14,7 +14,7 @@ import type {
 } from './types'
 import type { InferFile } from './types/internal'
 import { toFlatMapArray } from './utils/array'
-import { mapObject } from './utils/object'
+import { eachObject, mapObject } from './utils/object'
 
 export type * from './types'
 
@@ -86,7 +86,10 @@ export class Jsonl {
   } {
     return mapObject(filePaths, (file) => {
       const ff = flatFile(file)
-      return this.readStream(path.join(basePath, ff.path), ff.options ?? options)
+      return this.readStream(path.join(basePath, ff.path), {
+        ...options,
+        ...ff.options,
+      })
     }) as any
   }
 
@@ -122,10 +125,7 @@ export class Jsonl {
   /**
    * ファイルに追記する用のストリームオブジェクトを作成します。
    */
-  static writeStream(
-    filePath: string,
-    options: JsonlWriteOptionsWithSchema = {},
-  ) {
+  static writeStream(filePath: string, options: JsonlWriteOptionsWithSchema = {}) {
     this._resetCache(filePath, options)
     const stream = fsSync.createWriteStream(filePath, { flags: options.mode ?? 'a' })
 
@@ -187,17 +187,44 @@ export class Jsonl {
     } satisfies JsonlWriter
   }
 
-  static writeStreams<P extends Record<string, string | FileInput>>(
+  static writeStreams<
+    P extends Record<string, string | FileInput> & {
+      $$write?: never
+      $$writeMany?: never
+      $$end?: never
+    },
+  >(
     basePath: string,
     filePaths: P,
     options: JsonlWriteOptionsWithSchema = {},
   ): {
     [K in keyof P]: JsonlWriter
+  } & {
+    $$write: JsonlWriter['write']
+    $$writeMany: JsonlWriter['writeMany']
+    $$end: JsonlWriter['end']
   } {
-    return mapObject(filePaths, (file) => {
+    const writers = mapObject(filePaths, (file) => {
       const ff = flatFile(file)
-      return this.writeStream(path.join(basePath, ff.path), ff.options ?? options)
-    }) as any
+      return this.writeStream(path.join(basePath, ff.path), {
+        ...options,
+        ...ff.options,
+      })
+    })
+
+    function promiseAll(key: keyof JsonlWriter) {
+
+    }
+
+    return {
+      ...writers,
+      async $end() {
+        const results = await Promise.all(
+          Object.values(writers).map((writer) => writer.end),
+        )
+        return results.every(Boolean)
+      },
+    }
   }
 
   static file<T = any>(
