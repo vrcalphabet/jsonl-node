@@ -112,13 +112,15 @@ export class Jsonl {
     data: unknown[],
     options: JsonlWriteOptionsWithSchema = {},
   ) {
-    this._resetCache(filePath, options)
+    const realPath = path.resolve(filePath)
+    await fs.mkdir(path.dirname(realPath), { recursive: true })
+    this._resetCache(realPath, options)
 
-    const payload = await createPayload(filePath, data, options, this.schemas)
+    const payload = await createPayload(realPath, data, options, this.schemas)
     if (options.mode === 'w') {
-      await fs.writeFile(filePath, payload)
+      await fs.writeFile(realPath, payload)
     } else if (payload) {
-      await fs.appendFile(filePath, payload)
+      await fs.appendFile(realPath, payload)
     }
   }
 
@@ -126,13 +128,20 @@ export class Jsonl {
    * ファイルに追記する用のストリームオブジェクトを作成します。
    */
   static writeStream(filePath: string, options: JsonlWriteOptionsWithSchema = {}) {
-    this._resetCache(filePath, options)
+    const realPath = path.resolve(filePath)
+    fsSync.mkdirSync(path.dirname(realPath), { recursive: true })
+    this._resetCache(realPath, options)
+
     const stream = fsSync.createWriteStream(filePath, { flags: options.mode ?? 'a' })
 
     const writeMany = async (
       data: unknown[],
       schemaOptions?: JsonlSchemaOptions,
     ) => {
+      if (stream.writableEnded) {
+        throw new Error('Cannot write after stream has ended.')
+      }
+
       const payload = await createPayload(
         filePath,
         data,
@@ -187,13 +196,7 @@ export class Jsonl {
     } satisfies JsonlWriter
   }
 
-  static writeStreams<
-    P extends Record<string, string | FileInput> & {
-      $$write?: never
-      $$writeMany?: never
-      $$end?: never
-    },
-  >(
+  static writeStreams<P extends Record<string, string | FileInput>>(
     basePath: string,
     filePaths: P,
     options: JsonlWriteOptionsWithSchema = {},
@@ -212,17 +215,31 @@ export class Jsonl {
       })
     })
 
-    function promiseAll(key: keyof JsonlWriter) {
+    function writeManyWriters(data: unknown[], schemaOptions?: JsonlSchemaOptions) {
+      return Promise.all(
+        Object.values(writers).map((writer) =>
+          writer.writeMany(data, schemaOptions),
+        ),
+      )
+    }
 
+    async function endWriters() {
+      const results = await Promise.all(
+        Object.values(writers).map((writer) => writer.end()),
+      )
+      return results.every(Boolean)
     }
 
     return {
       ...writers,
-      async $end() {
-        const results = await Promise.all(
-          Object.values(writers).map((writer) => writer.end),
-        )
-        return results.every(Boolean)
+      async $$write(data: unknown, schemaOptions?: JsonlSchemaOptions) {
+        await writeManyWriters([data], schemaOptions)
+      },
+      async $$writeMany(data: unknown[], schemaOptions?: JsonlSchemaOptions) {
+        await writeManyWriters(data, schemaOptions)
+      },
+      $$end() {
+        return endWriters()
       },
     }
   }
@@ -243,8 +260,7 @@ export class Jsonl {
     this.schemas.set(realPath, { distance: 0, schema: [] })
   }
 
-  private static _resetCache(filePath: string, options: JsonlWriteOptions) {
-    const realPath = path.resolve(filePath)
+  private static _resetCache(realPath: string, options: JsonlWriteOptions) {
     if (options.mode === 'w') {
       this.schemas.set(realPath, { distance: 0, schema: [] })
     }

@@ -6,11 +6,11 @@ export function isPlainObject(
   return proto === null || proto === Object.prototype
 }
 
-export function mapObject<K extends string, V, T>(
-  obj: Record<K, V>,
-  callback: (value: V, key: K) => T,
-): Record<K, T> {
-  const entries = (Object.entries(obj) as [K, V][]).map(([key, value]) => {
+export function mapObject<O extends Record<string, any>, T>(
+  obj: O,
+  callback: (value: O[keyof O], key: keyof O) => T,
+): { [K in keyof O]: T } {
+  const entries = Object.entries(obj).map(([key, value]) => {
     return [key, callback(value, key)]
   })
   return Object.fromEntries(entries)

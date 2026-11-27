@@ -13,8 +13,8 @@
   },
   "scripts": {
     "format": "prettier --write src",
-    "dev": "tsdown --log-level silent --watch",
-    "build": "tsdown --log-level silent"
+    "dev": "tsdown --watch",
+    "build": "tsdown"
   },
   "keywords": [
     "jsonl",

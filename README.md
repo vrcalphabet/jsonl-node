@@ -48,11 +48,11 @@ for await (const user of readStream) {
 import { Jsonl } from 'jsonl-node'
                                 // ↓
 const readStream = Jsonl.readStreams('data', {
-  users: Jsonl.file<User>('./users.jsonl')
-  carts: Jsonl.file<Cart>('./cart.jsonl')
+  users: Jsonl.file<User>('./users.jsonl'),
+  carts: Jsonl.file<Cart>('./cart.jsonl'),
 })
 
-for await (const cart of readStream.users) {
+for await (const cart of readStream.carts) {
   console.log('Cart: ', cart)
 }
 ```
@@ -92,14 +92,14 @@ console.log('Stream closed: ', success)
 import { Jsonl } from 'jsonl-node'
                                   // ↓
 const writeStream = Jsonl.writeStreams('data', {
-  users: Jsonl.file<User>('./users.jsonl')
-  carts: Jsonl.file<Cart>('./cart.jsonl')
+  users: Jsonl.file<User>('./users.jsonl'),
+  carts: Jsonl.file<Cart>('./cart.jsonl'),
 })
 
-writeStream.users.write({ id: 1, name: 'Alice', role: 'admin' })
-writeStream.carts.write({ id: 1, items: ['Apple', 'Banana'] })
+await writeStream.users.write({ id: 1, name: 'Alice', role: 'admin' })
+await writeStream.carts.write({ id: 1, items: ['Apple', 'Banana'] })
 
-writeStream.$end()
+await writeStream.$$end()
 ```
 
 ##### 一括書き込み（スキーマ付き）
@@ -181,14 +181,19 @@ jsonl-nodeのスキーマを使用すると、最初にキーの一覧をスキ�
 
 読み込み時にはスキーマが自動的に適用され、通常のJSONオブジェクトとしてデータを取得できます。
 
-スキーマのAPIは以下の通りです。
-
 ## API
 
-#### `.read(filePath: string, options: JsonlReadOptions)`
-#### `.readStream(filePath: string, options?: JsonlReadOptions)`
+#### `.read<T>(filePath: string, options?: JsonlReadOptions)`
 
-上記のAPIと同じです。
+JSONLinesファイルを一括で読み込み、JavaScriptオブジェクトの配列として取得します。
+
+#### `.readStream<T>(filePath: string, options?: JsonlReadOptions)`
+
+JSONLinesファイルを1行ずつ読み込む非同期イテレータを返します。
+
+#### `.readStreams(basePath: string, filePaths: Record<string, FileInput<T>>, options?: JsonlReadOptions)`
+
+複数のJSONLinesファイルを扱います。basePathには共通ディレクトリを指定します。
 
 #### `.write(filePath: string, data: unknown, options?: JsonlWriteOptionsWithSchema)`
 
@@ -206,9 +211,21 @@ JavaScriptオブジェクトをJSON文字列に変換し、ファイルに追記
 - `writeMany(data: unknown[], options?: JsonlSchemaOptions)` 複数のデータをストリームに書き込みます。バッファが追い付かない場合は、自動的に待機します。
 - `end()` ストリームの書き込みを完了させて、ファイルを閉じます。
 
+#### `.writeStreams(basePath: string, filePaths: Record<string, FileInput>, options?: JsonlWriteOptionsWithSchema)`
+
+複数のJSONLinesファイルを扱います。basePathには共通ディレクトリを指定します。
+
+- `$$write(data: unknown, options?: JsonlSchemaOptions)` 複数のJSONLinesファイルにデータを書き込みます。
+- `$$writeMany(data: unknown[], options?: JsonlSchemaOptions)` 複数のJSONLinesファイルに複数のデータを書き込みます。
+- `$$end()` 複数のJSONLinesファイルのストリームの書き込みを完了させて、ファイルを閉じます。
+
 #### `.clear(filePath: string)`
 
-上記のAPIと同じです。
+ファイルの内容を消去します。
+
+#### `.file<T>(filePath: string, options?: JsonlReadOptions | JsonlWriteOptionsWithSchema)`
+
+ファイルに型やオプションを持たせるためのユーティリティメソッドです。 `.readStreams` や `.writeStreams` で使用します。
 
 ## オプション
 
@@ -223,7 +240,7 @@ interface JsonlReadOptions {
 
 `ignoreInvalid` 特定の行が無効なJSON構文であった場合、`SyntaxError`を発生させる代わりに行をスキップします。デフォルトは`true`です。
 
-`ignoreSchema` スキーマの定義行をスキーマと解釈せずにそのまま出力するようにします。
+`ignoreSchema` スキーマの定義行をスキーマと解釈せずにそのまま出力するようにします。デフォルトは `false` です。
 
 #### `JsonlWriteOptions`
 
@@ -237,7 +254,7 @@ interface JsonlWriteOptions {
 
 `ignoreInvalid` 値に循環参照や`BigInt`など、シリアライズできないオブジェクトが含まれている場合、`TypeError`を発生させる代わりにその値をスキップします。デフォルトは`true`です。
 
-`ignoreSchema` ファイルに既にスキーマが存在するかを捜索する処理を禁止します。
+`ignoreSchema` ファイルに既にスキーマが存在するかを捜索する処理を禁止します。デフォルトは `false` です。
 
 `mode` `'a'`の場合、ファイルの内容に追記します。`'w'`の場合、ファイルの内容を消去したうえで、新しく書き込みます。
 
